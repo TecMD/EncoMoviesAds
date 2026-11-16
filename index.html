@@ -9,68 +9,129 @@
         body {
             background-color: var(--tg-theme-bg-color, #17212b);
             color: var(--tg-theme-text-color, #ffffff);
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
+            overflow: hidden;
+        }
+        video {
+            width: 100%;
+            max-height: 60vh;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            object-fit: contain;
+            background: #000;
+        }
+        #status {
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
         }
         button {
-            background-color: #2481cc;
-            color: white;
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
             border: none;
-            padding: 15px 40px;
-            font-size: 18px;
+            padding: 15px 30px;
+            font-size: 16px;
             border-radius: 8px;
             cursor: pointer;
-            margin: 10px 0;
-            width: 100%;
+            width: 80%;
             max-width: 300px;
+            font-weight: bold;
+            margin-top: 10px;
+            display: none; /* Скрыты по умолчанию, кроме первой */
+        }
+        button:active {
+            opacity: 0.8;
+        }
+        #startBtn {
+            display: block; /* Показываем первую кнопку сразу */
         }
     </style>
 </head>
 <body>
 
-    <h2 id="status">Загрузка...</h2>
-    <button id="testBtn">Нажми меня для теста</button>
+    <div id="status">Реклама 1 из 2</div>
+    <video id="adPlayer" controlsList="nodownload" disablePictureInPicture></video>
+    
+    <button id="startBtn">▶️ Начать просмотр</button>
+    <button id="nextBtn">▶️ Смотреть следующее</button>
+    <button id="finishBtn">✅ Продолжить</button>
 
     <script>
         const tg = window.Telegram.WebApp;
+        tg.expand(); 
+
+        const adsList = [
+            "ads/ad1.mp4",
+            "ads/ad2.mp4"
+        ];
+
+        const player = document.getElementById('adPlayer');
         const status = document.getElementById('status');
-        const testBtn = document.getElementById('testBtn');
+        const startBtn = document.getElementById('startBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const finishBtn = document.getElementById('finishBtn');
+        
+        let currentAdIndex = 0;
 
-        // Показываем, что скрипт запустился
-        status.innerText = "Скрипт работает!";
-
-        // Проверяем, есть ли Telegram API
-        if (window.Telegram && window.Telegram.WebApp) {
-            status.innerText = "Telegram API загружен!";
-        } else {
-            status.innerText = "Ошибка: Telegram API не загружен!";
+        function playCurrentAd() {
+            player.src = adsList[currentAdIndex];
+            player.currentTime = 0; // Сброс на начало
+            player.load();
+            player.play().catch(e => console.log("Ошибка автоплея:", e));
+            status.innerText = `Реклама ${currentAdIndex + 1} из 2`;
         }
 
-        // Кнопка для теста отправки данных
-        testBtn.onclick = () => {
-            alert("Кнопка нажата! Отправляю данные...");
+        // 1. Первый запуск
+        startBtn.onclick = () => {
+            startBtn.style.display = 'none'; 
+            playCurrentAd();
+        };
+
+        // 2. Конец видео
+        player.onended = () => {
+            player.currentTime = 0; // Принудительный сброс полоски
             
-            try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const episodeId = urlParams.get('ep') || "1"; // Если нет, ставим 1
-                
-                tg.sendData(JSON.stringify({ 
-                    action: "ads_watched",
-                    episode_id: episodeId
-                }));
-                
-                alert("Данные отправлены!");
-                tg.close();
-            } catch (e) {
-                alert("Ошибка: " + e.message);
+            if (currentAdIndex === 0) {
+                nextBtn.style.display = 'block';
+                status.innerText = "Реклама 1 просмотрена!";
+            } else {
+                finishBtn.style.display = 'block';
+                status.innerText = "Реклама просмотрена!";
             }
+        };
+
+        // 3. Запуск второго
+        nextBtn.onclick = () => {
+            nextBtn.style.display = 'none'; 
+            currentAdIndex = 1; 
+            playCurrentAd();
+        };
+
+        // 4. Завершение
+        finishBtn.onclick = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const episodeId = urlParams.get('ep');
+
+            if (!episodeId) {
+                alert("Ошибка: ID эпизода не найден.");
+                return;
+            }
+
+            tg.sendData(JSON.stringify({ 
+                action: "ads_watched",
+                episode_id: episodeId
+            }));
+            
+            // Закрываем через полсекунды, чтобы данные точно ушли
+            setTimeout(() => tg.close(), 500);
         };
     </script>
 </body>
