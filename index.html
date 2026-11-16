@@ -66,12 +66,13 @@
     <button id="nextBtn">▶️ Смотреть следующее</button>
     <!-- Кнопка завершения -->
     <button id="finishBtn">✅ Продолжить</button>
-
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand(); 
 
-        // Твои видео
+        // Показываем на экране, что Telegram API загрузился
+        document.getElementById('status').innerText = "Telegram API загружен!";
+
         const adsList = [
             "ads/ad1.mp4",
             "ads/ad2.mp4"
@@ -85,10 +86,9 @@
         
         let currentAdIndex = 0;
 
-        // Функция запуска текущего видео
         function playCurrentAd() {
             player.src = adsList[currentAdIndex];
-            player.currentTime = 0; // Сбрасываем на начало
+            player.currentTime = 0; 
             player.load();
             player.play().catch(e => {
                 console.log("Ошибка автоплея:", e);
@@ -96,50 +96,56 @@
             status.innerText = `Видео ${currentAdIndex + 1} из 2`;
         }
 
-        // 1. Клик по первой кнопке
         startBtn.onclick = () => {
-            startBtn.style.display = 'none'; // Прячем кнопку
+            startBtn.style.display = 'none'; 
             playCurrentAd();
         };
 
-        // 2. Когда видео заканчивается
         player.onended = () => {
-            player.currentTime = 0; // Принудительно сбрасываем полоску в начало
+            player.currentTime = 0; 
             
             if (currentAdIndex === 0) {
-                // Закончилось первое видео
                 nextBtn.style.display = 'block';
                 status.innerText = "Видео 1 просмотрено!";
             } else {
-                // Закончилось второе видео
                 finishBtn.style.display = 'block';
                 status.innerText = "Реклама просмотрена!";
             }
         };
 
-        // 3. Клик по кнопке "Смотреть следующее"
         nextBtn.onclick = () => {
-            nextBtn.style.display = 'none'; // Прячем кнопку
-            currentAdIndex = 1; // Переключаем на второе видео
+            nextBtn.style.display = 'none'; 
+            currentAdIndex = 1; 
             playCurrentAd();
         };
 
-        // 4. Клик по кнопке "Продолжить" (Завершение)
+        // ВОТ ЗДЕСЬ МЫ ДОБАВИЛИ ОТЛАДКУ
         finishBtn.onclick = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const episodeId = urlParams.get('ep');
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const episodeId = urlParams.get('ep');
 
-            // Если ID нет, сообщаем об ошибке (чтобы не закрывать молча)
-            if (!episodeId) {
-                alert("Ошибка: не передан ID эпизода. Откройте рекламу через кнопку 'Смотреть' в боте.");
-                return;
+                if (!episodeId) {
+                    alert("Ошибка: ID эпизода не найден в ссылке!");
+                    return;
+                }
+
+                // Показываем, что отправляем
+                alert("Отправляю данные в бота: " + episodeId);
+                
+                tg.sendData(JSON.stringify({ 
+                    action: "ads_watched",
+                    episode_id: episodeId
+                }));
+                
+                // Закрываем только после отправки
+                setTimeout(() => {
+                    tg.close(); 
+                }, 500);
+                
+            } catch (error) {
+                alert("Ошибка JavaScript: " + error.message);
             }
-
-            tg.sendData(JSON.stringify({ 
-                action: "ads_watched",
-                episode_id: episodeId
-            }));
-            tg.close(); 
         };
     </script>
 </body>
