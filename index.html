@@ -116,9 +116,17 @@
 
         // Кнопка "Продолжить"
         continueBtn.onclick = () => {
-            // Отправляем боту сообщение, что реклама просмотрена
-            tg.sendData(JSON.stringify({ action: "ads_watched" }));
+            // Получаем episode_id из ссылки (например, ?ep=123)
+            const urlParams = new URLSearchParams(window.location.search);
+            const episodeId = urlParams.get('ep');
+
+            // Отправляем боту сигнал и ID эпизода
+            tg.sendData(JSON.stringify({ 
+                action: "ads_watched",
+                episode_id: episodeId
+            }));
             tg.close(); // Закрываем Mini App
+        };
         };
     </script>
 </body>
