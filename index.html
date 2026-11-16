@@ -9,142 +9,67 @@
         body {
             background-color: var(--tg-theme-bg-color, #17212b);
             color: var(--tg-theme-text-color, #ffffff);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            overflow: hidden;
-        }
-        video {
-            width: 100%;
-            max-height: 60vh;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            object-fit: contain;
-            background: #000;
-        }
-        #status {
-            font-size: 18px;
-            margin-bottom: 15px;
-            font-weight: bold;
-            text-align: center;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
         }
         button {
-            background-color: var(--tg-theme-button-color, #2481cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
+            background-color: #2481cc;
+            color: white;
             border: none;
-            padding: 15px 30px;
-            font-size: 16px;
+            padding: 15px 40px;
+            font-size: 18px;
             border-radius: 8px;
             cursor: pointer;
-            width: 80%;
+            margin: 10px 0;
+            width: 100%;
             max-width: 300px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        button:active {
-            opacity: 0.8;
-        }
-        /* Кнопки изначально скрыты, кроме первой */
-        #nextBtn, #finishBtn {
-            display: none;
         }
     </style>
 </head>
 <body>
 
-    <div id="status">Видео 1 из 2</div>
-    <video id="adPlayer" controlsList="nodownload" disablePictureInPicture></video>
-    
-    <!-- Кнопка запуска первого видео -->
-    <button id="startBtn">▶️ Начать просмотр</button>
-    <!-- Кнопка запуска второго видео -->
-    <button id="nextBtn">▶️ Смотреть следующее</button>
-    <!-- Кнопка завершения -->
-    <button id="finishBtn">✅ Продолжить</button>
+    <h2 id="status">Загрузка...</h2>
+    <button id="testBtn">Нажми меня для теста</button>
+
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); 
-
-        // Показываем на экране, что Telegram API загрузился
-        document.getElementById('status').innerText = "Telegram API загружен!";
-
-        const adsList = [
-            "ads/ad1.mp4",
-            "ads/ad2.mp4"
-        ];
-
-        const player = document.getElementById('adPlayer');
         const status = document.getElementById('status');
-        const startBtn = document.getElementById('startBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const finishBtn = document.getElementById('finishBtn');
-        
-        let currentAdIndex = 0;
+        const testBtn = document.getElementById('testBtn');
 
-        function playCurrentAd() {
-            player.src = adsList[currentAdIndex];
-            player.currentTime = 0; 
-            player.load();
-            player.play().catch(e => {
-                console.log("Ошибка автоплея:", e);
-            });
-            status.innerText = `Видео ${currentAdIndex + 1} из 2`;
+        // Показываем, что скрипт запустился
+        status.innerText = "Скрипт работает!";
+
+        // Проверяем, есть ли Telegram API
+        if (window.Telegram && window.Telegram.WebApp) {
+            status.innerText = "Telegram API загружен!";
+        } else {
+            status.innerText = "Ошибка: Telegram API не загружен!";
         }
 
-        startBtn.onclick = () => {
-            startBtn.style.display = 'none'; 
-            playCurrentAd();
-        };
-
-        player.onended = () => {
-            player.currentTime = 0; 
+        // Кнопка для теста отправки данных
+        testBtn.onclick = () => {
+            alert("Кнопка нажата! Отправляю данные...");
             
-            if (currentAdIndex === 0) {
-                nextBtn.style.display = 'block';
-                status.innerText = "Видео 1 просмотрено!";
-            } else {
-                finishBtn.style.display = 'block';
-                status.innerText = "Реклама просмотрена!";
-            }
-        };
-
-        nextBtn.onclick = () => {
-            nextBtn.style.display = 'none'; 
-            currentAdIndex = 1; 
-            playCurrentAd();
-        };
-
-        // ВОТ ЗДЕСЬ МЫ ДОБАВИЛИ ОТЛАДКУ
-        finishBtn.onclick = () => {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
-                const episodeId = urlParams.get('ep');
-
-                if (!episodeId) {
-                    alert("Ошибка: ID эпизода не найден в ссылке!");
-                    return;
-                }
-
-                // Показываем, что отправляем
-                alert("Отправляю данные в бота: " + episodeId);
+                const episodeId = urlParams.get('ep') || "1"; // Если нет, ставим 1
                 
                 tg.sendData(JSON.stringify({ 
                     action: "ads_watched",
                     episode_id: episodeId
                 }));
                 
-                // Закрываем только после отправки
-                setTimeout(() => {
-                    tg.close(); 
-                }, 500);
-                
-            } catch (error) {
-                alert("Ошибка JavaScript: " + error.message);
+                alert("Данные отправлены!");
+                tg.close();
+            } catch (e) {
+                alert("Ошибка: " + e.message);
             }
         };
     </script>
