@@ -26,6 +26,7 @@
             margin-bottom: 20px;
             object-fit: contain;
             background: #000;
+            /* Показываем стандартные элементы управления, включая полоску */
         }
         #status {
             font-size: 18px;
@@ -45,20 +46,21 @@
             max-width: 300px;
             font-weight: bold;
             margin-top: 10px;
-            display: none; /* Скрыты по умолчанию, кроме первой */
+            display: none;
         }
         button:active {
             opacity: 0.8;
         }
         #startBtn {
-            display: block; /* Показываем первую кнопку сразу */
+            display: block;
         }
     </style>
 </head>
 <body>
 
     <div id="status">Реклама 1 из 2</div>
-    <video id="adPlayer" controlsList="nodownload" disablePictureInPicture></video>
+    <!-- Добавили атрибут controls, чтобы видеть полоску -->
+    <video id="adPlayer" controls controlsList="nodownload noplaybackrate noremoteplayback" disablePictureInPicture></video>
     
     <button id="startBtn">▶️ Начать просмотр</button>
     <button id="nextBtn">▶️ Смотреть следующее</button>
@@ -80,14 +82,24 @@
         const finishBtn = document.getElementById('finishBtn');
         
         let currentAdIndex = 0;
+        let lastTime = 0; // Для блокировки перемотки
 
         function playCurrentAd() {
             player.src = adsList[currentAdIndex];
-            player.currentTime = 0; // Сброс на начало
+            player.currentTime = 0; 
             player.load();
             player.play().catch(e => console.log("Ошибка автоплея:", e));
             status.innerText = `Реклама ${currentAdIndex + 1} из 2`;
         }
+
+        // Блокировка перемотки вперед (запрещаем пользователю пропускать рекламу)
+        player.addEventListener('timeupdate', () => {
+            if (player.currentTime > lastTime + 1) { // Если прыжок больше 1 секунды
+                player.currentTime = lastTime; // Возвращаем назад
+            } else {
+                lastTime = player.currentTime; // Обновляем текущее время
+            }
+        });
 
         // 1. Первый запуск
         startBtn.onclick = () => {
@@ -97,7 +109,7 @@
 
         // 2. Конец видео
         player.onended = () => {
-            player.currentTime = 0; // Принудительный сброс полоски
+            player.currentTime = 0; 
             
             if (currentAdIndex === 0) {
                 nextBtn.style.display = 'block';
@@ -112,6 +124,7 @@
         nextBtn.onclick = () => {
             nextBtn.style.display = 'none'; 
             currentAdIndex = 1; 
+            lastTime = 0; // Сбрасываем счетчик для второго видео
             playCurrentAd();
         };
 
@@ -130,7 +143,6 @@
                 episode_id: episodeId
             }));
             
-            // Закрываем через полсекунды, чтобы данные точно ушли
             setTimeout(() => tg.close(), 500);
         };
     </script>
