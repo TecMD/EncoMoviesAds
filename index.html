@@ -20,7 +20,6 @@
             overflow: hidden;
         }
         
-        /* Скрываем стандартный плеер, чтобы не было лишних кнопок */
         video {
             width: 100%;
             max-height: 60vh;
@@ -28,15 +27,14 @@
             margin-bottom: 10px;
             object-fit: contain;
             background: #000;
-            cursor: pointer;
+            pointer-events: none; /* Отключаем любые клики по видео */
         }
         
-        /* Стили для кастомной полоски */
         #progressContainer {
             width: 100%;
             max-width: 400px;
             height: 6px;
-            background-color: #3a4a5e; /* Цвет фона полоски */
+            background-color: #3a4a5e;
             border-radius: 3px;
             overflow: hidden;
             margin-bottom: 20px;
@@ -45,7 +43,7 @@
         #progressBar {
             width: 0%;
             height: 100%;
-            background-color: #2481cc; /* Синий цвет заполнения */
+            background-color: #2481cc;
             transition: width 0.1s linear;
         }
 
@@ -84,10 +82,8 @@
 
     <div id="status">Реклама 1 из 2</div>
     
-    <!-- Само видео. Убрали атрибут controls, чтобы не было стандартной панели -->
     <video id="adPlayer" playsinline disablePictureInPicture></video>
     
-    <!-- Кастомная полоска прогресса -->
     <div id="progressContainer">
         <div id="progressBar"></div>
     </div>
@@ -120,25 +116,16 @@
             player.load();
             player.play().catch(e => console.log("Ошибка автоплея:", e));
             status.innerText = `Реклама ${currentAdIndex + 1} из 2`;
-            progressBar.style.width = '0%'; // Сбрасываем полоску
+            progressBar.style.width = '0%';
         }
 
-        // Обновляем полоску во время воспроизведения
+        // Обновляем полоску
         player.addEventListener('timeupdate', () => {
             if (player.duration) {
                 const percent = (player.currentTime / player.duration) * 100;
                 progressBar.style.width = percent + '%';
             }
         });
-
-        // Клик по видео — пауза/воспроизведение
-        player.onclick = () => {
-            if (player.paused) {
-                player.play();
-            } else {
-                player.pause();
-            }
-        };
 
         // 1. Первый запуск
         startBtn.onclick = () => {
