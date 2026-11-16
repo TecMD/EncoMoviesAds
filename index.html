@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Реклама</title>
-    <!-- Подключаем скрипт Telegram Mini Apps -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -22,7 +21,7 @@
         }
         video {
             width: 100%;
-            max-height: 70vh;
+            max-height: 60vh;
             border-radius: 12px;
             margin-bottom: 20px;
             object-fit: contain;
@@ -45,14 +44,14 @@
             width: 80%;
             max-width: 300px;
             font-weight: bold;
-            display: none; /* Изначально скрыты */
+            margin-top: 10px;
         }
         button:active {
             opacity: 0.8;
         }
-        #playBtn {
-            background-color: var(--tg-theme-secondary-bg-color, #2b3a4a);
-            margin-top: 10px;
+        /* Кнопки изначально скрыты, кроме первой */
+        #nextBtn, #finishBtn {
+            display: none;
         }
     </style>
 </head>
@@ -60,12 +59,17 @@
 
     <div id="status">Видео 1 из 2</div>
     <video id="adPlayer" controlsList="nodownload" disablePictureInPicture></video>
-    <button id="playBtn">▶️ Нажмите, чтобы играть</button>
-    <button id="continueBtn">Продолжить</button>
+    
+    <!-- Кнопка запуска первого видео -->
+    <button id="startBtn">▶️ Начать просмотр</button>
+    <!-- Кнопка запуска второго видео -->
+    <button id="nextBtn">▶️ Смотреть следующее</button>
+    <!-- Кнопка завершения -->
+    <button id="finishBtn">✅ Продолжить</button>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Открываем на весь экран
+        tg.expand(); 
 
         // Твои видео
         const adsList = [
@@ -75,92 +79,66 @@
 
         const player = document.getElementById('adPlayer');
         const status = document.getElementById('status');
-        const continueBtn = document.getElementById('continueBtn');
-        const playBtn = document.getElementById('playBtn');
-        let watchedCount = 0;
+        const startBtn = document.getElementById('startBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const finishBtn = document.getElementById('finishBtn');
+        
+        let currentAdIndex = 0;
 
-        // Функция перемешивания
-        function shuffle(array) {
-            let currentIndex = array.length, randomIndex;
-            while (currentIndex != 0) {
-                randomIndex = Math.floor(Math.random() * currentIndex);
-                currentIndex--;
-                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-            }
-            return array;
-        }
-
-        // Выбираем 2 случайных видео
-        const shuffledAds = shuffle([...adsList]);
-        const selectedAds = shuffledAds.slice(0, 2);
-
-        function playNextAd() {
-            if (watchedCount >= 2) return;
-            
-            player.src = selectedAds[watchedCount];
+        // Функция запуска текущего видео
+        function playCurrentAd() {
+            player.src = adsList[currentAdIndex];
+            player.currentTime = 0; // Сбрасываем на начало
             player.load();
-            
-            status.innerText = `Видео ${watchedCount + 1} из 2`;
-            status.style.color = "white";
-
-            // Пытаемся запустить автоматически
-            let playPromise = player.play();
-
-            if (playPromise !== undefined) {
-                playPromise.then(_ => {
-                    // Автозапуск сработал
-                    playBtn.style.display = 'none';
-                })
-                .catch(error => {
-                    // Автозапуск заблокирован браузером
-                    console.log("Автоплей заблокирован:", error);
-                    playBtn.style.display = 'block';
-                    playBtn.onclick = () => {
-                        player.play();
-                        playBtn.style.display = 'none';
-                    };
-                });
-            }
+            player.play().catch(e => {
+                console.log("Ошибка автоплея:", e);
+            });
+            status.innerText = `Видео ${currentAdIndex + 1} из 2`;
         }
 
-        // Если видео не может загрузиться
-        player.onerror = () => {
-            status.innerText = `Ошибка загрузки видео ${watchedCount + 1}`;
-            status.style.color = "red";
-            playBtn.style.display = 'none';
+        // 1. Клик по первой кнопке
+        startBtn.onclick = () => {
+            startBtn.style.display = 'none'; // Прячем кнопку
+            playCurrentAd();
         };
 
-        // Запускаем первое видео
-        playNextAd();
-
-        // По окончании видео
+        // 2. Когда видео заканчивается
         player.onended = () => {
-            watchedCount++;
-            if (watchedCount < 2) {
-                playNextAd();
+            player.currentTime = 0; // Принудительно сбрасываем полоску в начало
+            
+            if (currentAdIndex === 0) {
+                // Закончилось первое видео
+                nextBtn.style.display = 'block';
+                status.innerText = "Видео 1 просмотрено!";
             } else {
-                // Реклама закончена
+                // Закончилось второе видео
+                finishBtn.style.display = 'block';
                 status.innerText = "Реклама просмотрена!";
-                status.style.color = "white";
-                player.style.display = 'none';
-                playBtn.style.display = 'none';
-                continueBtn.style.display = 'block'; // Показываем кнопку "Продолжить"
             }
         };
 
-        // Кнопка "Продолжить"
-        continueBtn.onclick = () => {
-            // Получаем episode_id из URL (мы передали его из бота)
+        // 3. Клик по кнопке "Смотреть следующее"
+        nextBtn.onclick = () => {
+            nextBtn.style.display = 'none'; // Прячем кнопку
+            currentAdIndex = 1; // Переключаем на второе видео
+            playCurrentAd();
+        };
+
+        // 4. Клик по кнопке "Продолжить" (Завершение)
+        finishBtn.onclick = () => {
             const urlParams = new URLSearchParams(window.location.search);
             const episodeId = urlParams.get('ep');
 
-            // Отправляем данные боту
+            // Если ID нет, сообщаем об ошибке (чтобы не закрывать молча)
+            if (!episodeId) {
+                alert("Ошибка: не передан ID эпизода. Откройте рекламу через кнопку 'Смотреть' в боте.");
+                return;
+            }
+
             tg.sendData(JSON.stringify({ 
                 action: "ads_watched",
                 episode_id: episodeId
             }));
-            
-            // Закрываем Mini App
             tg.close(); 
         };
     </script>
