@@ -19,21 +19,43 @@
             height: 100vh;
             overflow: hidden;
         }
+        
+        /* Скрываем стандартный плеер, чтобы не было лишних кнопок */
         video {
             width: 100%;
             max-height: 60vh;
             border-radius: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             object-fit: contain;
             background: #000;
-            /* Показываем стандартные элементы управления, включая полоску */
+            cursor: pointer;
         }
+        
+        /* Стили для кастомной полоски */
+        #progressContainer {
+            width: 100%;
+            max-width: 400px;
+            height: 6px;
+            background-color: #3a4a5e; /* Цвет фона полоски */
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background-color: #2481cc; /* Синий цвет заполнения */
+            transition: width 0.1s linear;
+        }
+
         #status {
             font-size: 18px;
             margin-bottom: 15px;
             font-weight: bold;
             text-align: center;
         }
+        
         button {
             background-color: var(--tg-theme-button-color, #2481cc);
             color: var(--tg-theme-button-text-color, #ffffff);
@@ -48,9 +70,11 @@
             margin-top: 10px;
             display: none;
         }
+        
         button:active {
             opacity: 0.8;
         }
+        
         #startBtn {
             display: block;
         }
@@ -59,8 +83,14 @@
 <body>
 
     <div id="status">Реклама 1 из 2</div>
-    <!-- Добавили атрибут controls, чтобы видеть полоску -->
-    <video id="adPlayer" controls controlsList="nodownload noplaybackrate noremoteplayback" disablePictureInPicture></video>
+    
+    <!-- Само видео. Убрали атрибут controls, чтобы не было стандартной панели -->
+    <video id="adPlayer" playsinline disablePictureInPicture></video>
+    
+    <!-- Кастомная полоска прогресса -->
+    <div id="progressContainer">
+        <div id="progressBar"></div>
+    </div>
     
     <button id="startBtn">▶️ Начать просмотр</button>
     <button id="nextBtn">▶️ Смотреть следующее</button>
@@ -76,13 +106,13 @@
         ];
 
         const player = document.getElementById('adPlayer');
+        const progressBar = document.getElementById('progressBar');
         const status = document.getElementById('status');
         const startBtn = document.getElementById('startBtn');
         const nextBtn = document.getElementById('nextBtn');
         const finishBtn = document.getElementById('finishBtn');
         
         let currentAdIndex = 0;
-        let lastTime = 0; // Для блокировки перемотки
 
         function playCurrentAd() {
             player.src = adsList[currentAdIndex];
@@ -90,16 +120,25 @@
             player.load();
             player.play().catch(e => console.log("Ошибка автоплея:", e));
             status.innerText = `Реклама ${currentAdIndex + 1} из 2`;
+            progressBar.style.width = '0%'; // Сбрасываем полоску
         }
 
-        // Блокировка перемотки вперед (запрещаем пользователю пропускать рекламу)
+        // Обновляем полоску во время воспроизведения
         player.addEventListener('timeupdate', () => {
-            if (player.currentTime > lastTime + 1) { // Если прыжок больше 1 секунды
-                player.currentTime = lastTime; // Возвращаем назад
-            } else {
-                lastTime = player.currentTime; // Обновляем текущее время
+            if (player.duration) {
+                const percent = (player.currentTime / player.duration) * 100;
+                progressBar.style.width = percent + '%';
             }
         });
+
+        // Клик по видео — пауза/воспроизведение
+        player.onclick = () => {
+            if (player.paused) {
+                player.play();
+            } else {
+                player.pause();
+            }
+        };
 
         // 1. Первый запуск
         startBtn.onclick = () => {
@@ -110,6 +149,7 @@
         // 2. Конец видео
         player.onended = () => {
             player.currentTime = 0; 
+            progressBar.style.width = '100%'; // Оставляем полоску заполненной
             
             if (currentAdIndex === 0) {
                 nextBtn.style.display = 'block';
@@ -124,7 +164,6 @@
         nextBtn.onclick = () => {
             nextBtn.style.display = 'none'; 
             currentAdIndex = 1; 
-            lastTime = 0; // Сбрасываем счетчик для второго видео
             playCurrentAd();
         };
 
